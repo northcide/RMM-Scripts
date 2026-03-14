@@ -40,7 +40,7 @@ else
 {
 	#Install EXE
 	Write-Host $ArgumentsEXE
-	Start-Process -FilePath $DownloadPath -Wait -ArgumentLis $ArgumentsEXE
+	Start-Process -FilePath $DownloadPath -Wait -ArgumentList $ArgumentsEXE
 }
 
 #Stop Logging
