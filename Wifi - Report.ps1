@@ -52,14 +52,18 @@ param (
 )
 
 begin {
+    # Function to check if the script is running with administrator privileges
     function Test-IsElevated {
         $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
         $p = New-Object System.Security.Principal.WindowsPrincipal($id)
         $p.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
     }
 
+    # Function to determine the Wi-Fi band based on radio type and channel
+    # Function to determine the Wi-Fi band based on radio type and channel
     function Get-WifiBand {
         param ($RadioType, $Channel)
+        # Array of objects defining Wi-Fi bands, radio types, and channels
         @(
             [PSCustomObject]@{ # Wi-Fi 2.4GHz
                 RadioType = "802.11b", "802.11g", "802.11n", "802.11ax", "802.11be"
@@ -114,6 +118,7 @@ begin {
         } | Select-Object -ExpandProperty Band
     }
 
+    # Function to retrieve information about Wi-Fi adapters using netsh
     function Get-WifiAdapters {
         $NetShOutput = $(netsh.exe wlan show interfaces)
         $IsNext = $false
@@ -177,6 +182,7 @@ begin {
         }
     }
 
+    # Function to retrieve information about available Wi-Fi access points using netsh
     function Get-WifiAPs {
         $SsidRegex = "^SSID\s[0-9]{1,4}\s:\s(.*)"
         $NetShOutput = $(netsh.exe wlan show networks mode=bssid)
@@ -234,6 +240,7 @@ begin {
         }
     }
 
+    # Function to get the Wi-Fi radio status (hardware and software)
     function Get-WifiRadioStatus {
         $NetShOutput = $(netsh.exe wlan show interfaces)
         $RadioStatus = [PSCustomObject]@{
@@ -255,6 +262,7 @@ begin {
         return $RadioStatus
     }
 
+    # Function to test if the Wi-Fi radio is enabled
     function Test-WifiRadioStatus {
         $RadioStatus = Get-WifiRadioStatus
         if ($RadioStatus.Hardware -eq "On" -and $RadioStatus.Software -eq "On") {
@@ -264,6 +272,8 @@ begin {
             return $false
         }
     }
+
+    # Function to set a custom property in NinjaRMM
     function Set-NinjaProperty {
         [CmdletBinding()]
         Param(
@@ -341,13 +351,16 @@ begin {
 }
 
 process {
+    # Check if running as administrator, exit if not
     if (-not (Test-IsElevated)) {
         Write-Error -Message "Access Denied. Please run with Administrator privileges."
         exit 1
     }
     
+    # Get custom field name from environment variable if set
     if ($env:wysiwygCustomFieldName -and $env:wysiwygCustomFieldName -notlike "null") { $CustomField = $env:wysiwygCustomFieldName }
 
+    # Check Wi-Fi radio status and report
     if (Test-WifiRadioStatus) {
         Write-Host "[Info] Wifi Radio is On"
     }
@@ -361,10 +374,10 @@ process {
     # Get Wifi Adapters
     $WifiAdapters = Get-WifiAdapters
 
-    # Get Wifi Access Points
+    # Get available Wi-Fi access points
     $AccessPointList = Get-WifiAPs
 
-    # Build the report
+    # Build the HTML report
     $Report = "<h1>Wifi Report</h1>"
 
     $Report += "<h2>Wifi Adapters</h2>"
@@ -383,6 +396,7 @@ process {
         $Report += "<p>No Other Wifi Networks Found</p>"
     }
 
+    # Output the report to console
     Write-Host "--- Wifi Report ---"
     Write-Host ""
     Write-Host "### Wifi Adapters ###"
@@ -393,10 +407,12 @@ process {
         Select-Object -Property SSID, Authentication, Band, Channel, Signal |
         Format-Table -AutoSize | Out-String -Width 4000 | Write-Host
 
+    # If DebugHtml switch is used, output the HTML report
     if ($DebugHtml) {
         $Report | Out-String | Write-Host
     }
 
+    # If a custom field is specified, save the report to it
     if ($Report) {
         # Save report to multi-line custom field
         if ($CustomField) {
